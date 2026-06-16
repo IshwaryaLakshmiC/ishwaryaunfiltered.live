@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ishwarya Chengalvarayan — Solutions Engineer | Cloud Infrastructure & Platform</title>
-  <meta name="description" content="Cloud Infrastructure Architect with 7+ years at Cisco, Bugcrowd, and Mercor AI Lab. Designed platforms, authored architecture RFCs, evaluated vendors. Transitioning into Solutions Engineering across APAC and EMEA." />
+  <title>Ishwarya Chengalvarayan — Solutions Engineer | Cloud Security</title>
+  <meta name="description" content="Senior Cloud Security Engineer with 7+ years at Cisco, Bugcrowd, and Mercor. Transitioning into Solutions Engineering. Built AI-powered security demos deployable on AWS." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
@@ -177,14 +177,14 @@
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-label">Cloud Infrastructure Architect &amp; Platform Engineer → Solutions Engineering</div>
+  <div class="hero-label">Senior Cloud Security Engineer → Solutions Engineering</div>
   <h1 class="hero-name">Ishwarya<br>Chengalvarayan</h1>
-  <p class="hero-role"><strong>7 years</strong> designing enterprise cloud infrastructure at Cisco, Bugcrowd, and Mercor AI Lab — multi-region AWS, Kubernetes at scale, IaC platform design, and vendor architecture decisions. Now moving into customer-facing solutions roles.</p>
+  <p class="hero-role"><strong>7 years</strong> securing enterprise AWS infrastructure at Cisco, Bugcrowd, and Mercor AI Lab. Now applying that depth to customer-facing roles in cloud security and identity.</p>
 
   <div class="hero-proof">
-    <span class="proof-item"><span class="proof-dot"></span>Architected multi-region AWS platforms handling 2M+ monthly transactions</span>
-    <span class="proof-item"><span class="proof-dot"></span>Authored infrastructure RFCs and led vendor evaluations at Cisco and Mercor AI Lab</span>
-    <span class="proof-item"><span class="proof-dot"></span>Designed IaC platforms across 20 customer environments at Gale Partners</span>
+    <span class="proof-item"><span class="proof-dot"></span>Conducted ZTNA vendor evaluations at Cisco across Cloudflare, Netskope, Palo Alto</span>
+    <span class="proof-item"><span class="proof-dot"></span>Authored platform RFCs presented to engineering leadership</span>
+    <span class="proof-item"><span class="proof-dot"></span>Deployed Okta + SCIM across 1,000+ EKS clusters</span>
   </div>
 
   <div class="terminal">
@@ -228,20 +228,20 @@
   <div class="container">
     <p class="section-label">Featured Projects</p>
     <h2 class="section-title">Built to solve real customer problems</h2>
-    <p class="section-sub">Each project models a real SE workflow — discovery, gap analysis, tradeoff decisions, stakeholder communication. Live on AWS, not on localhost.</p>
+    <p class="section-sub">Each project targets a conversation that happens in enterprise SE engagements. Live demos, real AWS infrastructure, real Okta integration.</p>
 
     <div class="projects-grid">
 
       <!-- Project 1: Discovery Copilot -->
       <div class="project-card flagship">
         <div>
-          <span class="project-tag tag-flagship">Flagship · Discovery &amp; Solution Design</span>
+          <span class="project-tag tag-flagship">Flagship · SE Workflow</span>
           <h3 class="project-title">Security Discovery & Solution Design Copilot</h3>
-          <p class="project-problem">Enterprise vendors lose deals in the discovery phase. Generic questions produce vague answers. The best SEs run structured discovery that surfaces gaps the customer hasn't articulated yet — then design multiple architecture paths with honest tradeoffs rather than a single recommendation.</p>
-          <p class="project-what">An AI system that runs adaptive discovery conversations, scores gaps against industry frameworks, generates 4 architecture paths with honest cost/risk tradeoffs, tailors stakeholder messaging by role (technical champion vs economic buyer vs operations team), and produces a board-ready executive summary — the full SE engagement cycle from first call to post-meeting deliverable.</p>
+          <p class="project-problem">Enterprise security vendors lose deals because discovery conversations are generic. "Tell me about your environment" produces vague answers. Skilled SEs ask adaptive, domain-specific questions and surface gaps the customer didn't know they had.</p>
+          <p class="project-what">An AI system that conducts adaptive SE discovery conversations, scores gaps against CIS Controls and SOC2, generates 4 alternative architecture options with honest tradeoffs, maps stakeholder messaging by role (CISO vs Finance vs IAM team), and produces a CISO-ready executive summary — the full SE workflow from first call to post-meeting deliverable.</p>
           <div class="project-targets">
-            <span class="target-tag">Databricks</span><span class="target-tag">HashiCorp</span><span class="target-tag">Datadog</span>
-            <span class="target-tag">Cloudflare</span><span class="target-tag">Okta</span><span class="target-tag">Wiz</span>
+            <span class="target-tag">Okta</span><span class="target-tag">Wiz</span><span class="target-tag">Cloudflare</span>
+            <span class="target-tag">CrowdStrike</span><span class="target-tag">SailPoint</span><span class="target-tag">CyberArk</span>
           </div>
           <div class="project-links">
             <a class="project-link link-demo" href="https://ishwaryaaunfiltered.live/discovery" target="_blank">Live Demo</a>
@@ -279,13 +279,13 @@
       <!-- Project 3: Governance Copilot -->
       <div class="project-card flagship">
         <div>
-          <span class="project-tag tag-ai">AI Platform · Cloud Infrastructure</span>
+          <span class="project-tag tag-security">Cloud Security · AI</span>
           <h3 class="project-title">AWS Security & Cost Governance Copilot</h3>
-          <p class="project-problem">Engineering and platform teams spend hours manually correlating infrastructure findings, configuration drift, and cost anomalies across AWS accounts. The most common question — "why did our bill spike $340 last week?" — takes days to answer without the right tooling.</p>
-          <p class="project-what">A natural language interface over live AWS infrastructure — no dashboards, no queries, no SIEM config. Ask "why did our bill spike last week?" or "which services have configuration drift?" and get answers grounded in real data. Collectors poll 9 AWS services continuously. Deployed on Bedrock with Claude Sonnet and pgvector for semantic search. Built and shipped on Terraform-managed infrastructure.</p>
+          <p class="project-problem">Security teams spend hours manually correlating IAM findings, S3 misconfigurations, GuardDuty alerts, and cost anomalies across AWS accounts. The most common question — "why did our bill spike?" — takes days to answer manually.</p>
+          <p class="project-what">A natural language interface over real AWS infrastructure. Ask "which IAM users have AdministratorAccess and haven't logged in for 90 days?" or "why did our bill spike $340 last Tuesday?" and get answers grounded in live AWS data. Collectors poll IAM, S3, EC2, GuardDuty, CloudTrail, Cost Explorer, and Lambda. Answers cite their sources. Deployed on AWS Bedrock with pgvector RAG.</p>
           <div class="project-targets">
-            <span class="target-tag">Datadog</span><span class="target-tag">HashiCorp</span><span class="target-tag">Snowflake</span>
-            <span class="target-tag">Wiz</span><span class="target-tag">MongoDB</span><span class="target-tag">Elastic</span>
+            <span class="target-tag">Wiz</span><span class="target-tag">Datadog</span><span class="target-tag">AWS (SA roles)</span>
+            <span class="target-tag">CrowdStrike</span><span class="target-tag">Lacework</span>
           </div>
           <div class="project-links">
             <a class="project-link link-demo" href="https://ishwaryaaunfiltered.live/copilot" target="_blank">Live Demo</a>
@@ -368,16 +368,16 @@
 <section id="about">
   <div class="container">
     <p class="section-label">Background</p>
-    <h2 class="section-title">Infrastructure practitioner moving into customer-facing work</h2>
-    <p class="section-sub">I've spent 7 years as the person who gets called when an architecture decision needs to be made — platform design, vendor selection, IaC strategy, or infrastructure tradeoffs. The move to Solutions Engineering is about applying that same depth to customer problems rather than internal ones.</p>
+    <h2 class="section-title">What I bring to a Solutions Engineering role</h2>
+    <p class="section-sub">The gap between DevOps engineer and Solutions Engineer isn't technical — it's customer-facing. I've spent 7 years doing the technical work. The last two years I've been doing the customer-facing parts of it without the title.</p>
 
     <div class="about-grid">
       <div class="about-block">
-        <h3>Cloud &amp; Platform</h3>
-        <p>Multi-region AWS at scale, EKS handling 2M+ monthly transactions, Terraform IaC authorship across 20 customer environments, AI platform infrastructure at Mercor, GitOps-driven deployment pipelines.</p>
+        <h3>Technical Depth</h3>
+        <p>Multi-region AWS at scale, EKS with 2M+ monthly transactions, Terraform IaC authorship, Zero Trust architecture, IAM/SCIM/OIDC across enterprise identity stacks.</p>
         <div class="tag-list">
           <span class="tag">AWS</span><span class="tag">EKS</span><span class="tag">Terraform</span>
-          <span class="tag">Kubernetes</span><span class="tag">Platform Engineering</span><span class="tag">GitOps</span>
+          <span class="tag">Zero Trust</span><span class="tag">IAM</span><span class="tag">Okta</span>
         </div>
       </div>
       <div class="about-block">
@@ -397,10 +397,10 @@
       </div>
       <div class="about-block">
         <h3>Target Roles</h3>
-        <p>Solutions Engineer, Customer Engineer, and Solutions Architect at cloud infrastructure, data, observability, and platform companies. Open to Singapore, broader APAC, and EMEA.</p>
+        <p>Solutions Engineer, Security Solutions Engineer, Customer Engineer, and Security Solutions Architect at cloud security, identity, and infrastructure companies. Open to EMEA and APAC.</p>
         <div class="tag-list">
-          <span class="tag">Solutions Engineer</span><span class="tag">Customer Engineer</span>
-          <span class="tag">Singapore</span><span class="tag">APAC</span><span class="tag">EMEA</span>
+          <span class="tag">Solutions Engineer</span><span class="tag">Security SE</span>
+          <span class="tag">EMEA</span><span class="tag">APAC</span>
         </div>
       </div>
     </div>
@@ -415,11 +415,19 @@
     <p class="section-label">Technical Stack</p>
     <div class="skills-row">
       <div class="skill-group">
-        <h4>Cloud & Infrastructure</h4>
+        <h4>Cloud</h4>
         <ul>
           <li>AWS (multi-region, multi-account)</li>
           <li>EKS / Kubernetes</li>
           <li>Azure, GCP (familiar)</li>
+        </ul>
+      </div>
+      <div class="skill-group">
+        <h4>Identity & Security</h4>
+        <ul>
+          <li>Okta, Azure AD, Ping</li>
+          <li>SCIM, OIDC, OAuth2, SAML</li>
+          <li>Zero Trust / ZTNA</li>
         </ul>
       </div>
       <div class="skill-group">
@@ -431,27 +439,19 @@
         </ul>
       </div>
       <div class="skill-group">
+        <h4>Observability</h4>
+        <ul>
+          <li>Datadog, Grafana</li>
+          <li>CloudWatch, CloudTrail</li>
+          <li>GuardDuty, Security Hub</li>
+        </ul>
+      </div>
+      <div class="skill-group">
         <h4>AI & Platform</h4>
         <ul>
           <li>AWS Bedrock, OpenRouter</li>
           <li>pgvector, RAG pipelines</li>
           <li>FastAPI, Python</li>
-        </ul>
-      </div>
-      <div class="skill-group">
-        <h4>Observability</h4>
-        <ul>
-          <li>Datadog, Grafana</li>
-          <li>CloudWatch, CloudTrail</li>
-          <li>Cost Explorer, X-Ray</li>
-        </ul>
-      </div>
-      <div class="skill-group">
-        <h4>Identity & Security</h4>
-        <ul>
-          <li>Okta, Azure AD, Ping</li>
-          <li>SCIM, OIDC, OAuth2, SAML</li>
-          <li>Zero Trust / ZTNA</li>
         </ul>
       </div>
     </div>
@@ -465,8 +465,8 @@
   <div class="container">
     <div class="contact-wrap">
       <p class="section-label">Get in touch</p>
-      <h2 class="section-title">Open to the right conversation</h2>
-      <p class="section-sub">If you're building out Solutions Engineering capacity in APAC or EMEA and want someone with real infrastructure depth — not just a product background — I'd like to talk. Thirty minutes is enough to find out if there's a fit.</p>
+      <h2 class="section-title">Let's have a conversation</h2>
+      <p class="section-sub">If you're hiring for Solutions Engineer, Security Solutions Engineer, or Security Solutions Architect roles across EMEA or APAC — I'd like to talk. A 30-minute intro call costs nothing.</p>
 
       <div class="cta-group">
         <a href="https://calendly.com/ishwaryalakshmi-c/30min" target="_blank" class="btn btn-primary">
@@ -504,14 +504,14 @@
 
 <script>
 const lines = [
-  "Discovery complete · 6 gaps identified · 3 architecture options generated",
-  "Vendor evaluation: HashiCorp vs Pulumi vs CDK · recommendation: Terraform · rationale exported",
-  "AWS cost spike: $340 on Tuesday · root cause: NAT Gateway misrouting · fix: VPC endpoint",
-  "Stakeholder brief generated: CTO · Platform Lead · Finance · Procurement",
-  "Architecture option B: Best Cost · time to value: 6 weeks · ops overhead: low",
-  "RFC approved: tiered IaC modules · 20 customer environments · zero blast radius",
-  "Executive summary ready · 3-phase roadmap · estimated platform savings: $2.4k/month",
-  "EKS cluster: 2M+ transactions/month · multi-region · p99 latency: 34ms",
+  "Gap identified: no SCIM automation · severity: HIGH · SOC2 CC6.2",
+  "Vendor match: Okta Lifecycle Management · fit: 94% · Phase 1",
+  "Stakeholder brief generated: CISO · CIO · IAM Team · Finance",
+  "Architecture option B: Best Cost · time to value: 8 weeks",
+  "Executive summary ready · 3-phase roadmap · estimated investment: $180k",
+  "ZTNA policy evaluated: contractor + BYOD + prod DB → DENIED",
+  "Compliance mapped: MFA policy → CIS 6.3 · SOC2 CC6.1 · NIST PR.AC-7",
+  "AWS IAM: svc-legacy-backup · 187 days inactive · AdministratorAccess · CRITICAL",
 ];
 let li=0,ci=0,del=false;
 const el=document.getElementById('tw');
