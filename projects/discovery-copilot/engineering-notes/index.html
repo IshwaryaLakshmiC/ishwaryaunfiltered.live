@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Engineering Notes — SE Discovery & Solution Design Copilot | Ishwarya Chengalvarayan</title>
+<meta name="description" content="Architecture decisions, trade-offs, and lessons learned building an AI-driven SE discovery and solution design engine." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../engineering-notes.css" />
+</head>
+<body>
+
+<nav>
+  <a href="../../../index.html" class="nav-name">Ishwarya <span>Chengalvarayan</span></a>
+  <ul class="nav-links">
+    <li><a href="../../../index.html#projects">Projects</a></li>
+    <li><a href="../../../index.html#about">About</a></li>
+    <li><a href="../../../index.html#contact">Contact</a></li>
+    <li><a class="nav-cta" href="https://calendly.com/ishwaryalakshmi-c/30min" target="_blank">Book 30 min →</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="en-hero">
+  <div class="en-kicker">Engineering Notes</div>
+  <h1 class="en-title">SE Discovery & Solution Design Copilot</h1>
+  <p class="en-desc">A design review of the architecture decisions behind an AI system that runs the first three meetings of a Solutions Engineering engagement — adaptive discovery, deterministic gap analysis, and vendor-grounded recommendations.</p>
+  <div class="en-meta">
+    <span>~14 min read</span>
+    <span class="dot"></span>
+    <span>Architecture &amp; design decisions</span>
+  </div>
+  <div class="en-cta-row">
+    <a href="../../../index.html#projects" class="btn btn-ghost">← Back to Project</a>
+    <a href="https://youtu.be/-ubImHlkv9s" target="_blank" class="btn btn-primary">Live Demo</a>
+    <a href="https://github.com/IshwaryaLakshmiC/security-discovery-copilot" target="_blank" class="btn btn-secondary">GitHub</a>
+  </div>
+</div>
+
+<div class="en-container">
+
+  <!-- SECTION 1: THE PROBLEM -->
+  <section class="en-section">
+    <div class="en-section-label">01 — The Problem</div>
+    <h2 class="en-section-title">Discovery is where deals are actually won or lost</h2>
+    <div class="en-body">
+      <p>Most enterprise security and infrastructure purchases don't fail because the vendor's product is weak. They fail because the discovery conversation never surfaced the real problem. A customer says <strong>"we want Zero Trust"</strong> or <strong>"we need better IAM"</strong> — and a junior SE takes that statement at face value, runs a demo of relevant features, and loses the deal to a competitor who asked one more question.</p>
+      <p>The operational pain isn't technical. It's that discovery quality is inconsistent and person-dependent. A senior SE with ten years of pattern-matching experience asks sharper follow-up questions than someone six months into the role, and that gap directly determines whether the resulting recommendation addresses the customer's actual constraint or just their stated one. Organisations experience this because discovery skill is tacit knowledge — it lives in individual SEs' heads, not in a repeatable process, which means deal quality varies with headcount turnover and ramp time rather than with the strength of the product being sold.</p>
+      <p>The harder version of this problem: even when discovery is done well, the output is usually a set of notes in a CRM, not a structured artefact that can be scored, compared, or handed to a second person without re-explaining the whole conversation. That's the gap this system targets — not replacing the SE's judgement, but giving the judgement a consistent structure to operate inside.</p>
+    </div>
+  </section>
+
+  <!-- SECTION 2: CUSTOMER CONTEXT -->
+  <section class="en-section">
+    <div class="en-section-label">02 — Customer Context</div>
+    <h2 class="en-section-title">Who this is built for</h2>
+    <div class="en-body">
+      <p>The intended customer profile is a mid-market to enterprise organisation — typically 500 to 10,000 employees — that has grown its identity and security posture organically rather than by design. Four scenarios are modelled directly in the system, each reflecting a distinct shape of this problem: a 500-person SaaS company with Okta deployed but no SCIM automation; a 2,000-person FinTech with hybrid on-prem and cloud identity and a VPN-dependent access model; a 750-person healthcare provider with PHI exposure and no identity governance; and a 10,000-person enterprise mid-acquisition, integrating a second company's identity estate.</p>
+      <p>What these four have in common is the operational profile that makes discovery hard: a small identity or security team (often two to four people) responsible for an estate that has outgrown manual processes, genuine compliance pressure with a fixed deadline (an audit, a certification renewal, a board mandate), and at least one existing tooling investment that any recommendation has to account for rather than ignore. The business driver is rarely "we read about Zero Trust and want it" — it's usually a near-miss incident, an upcoming audit, or a new executive (often a CISO) who inherited a posture they didn't build and need to defend it credibly within months, not years.</p>
+    </div>
+  </section>
+
+  <!-- SECTION 3: ARCHITECTURE OVERVIEW -->
+  <section class="en-section">
+    <div class="en-section-label">03 — Architecture Overview</div>
+    <h2 class="en-section-title">How a request moves through the system</h2>
+    <div class="en-body">
+      <p>Five engines sit behind one FastAPI backend, each responsible for one stage of the engagement. The frontend is a single static HTML page — no build step, no framework — that calls these engines through versioned REST routes and renders streamed responses directly.</p>
+    </div>
+
+    <div class="arch-diagram">
+      <div class="arch-node accent"><div class="arch-node-label">Browser (static HTML/JS)</div><div class="arch-node-sub">discovery chat · gap panel · recommendations · executive summary</div></div>
+      <div class="arch-arrow">↓ REST + SSE streaming</div>
+      <div class="arch-node"><div class="arch-node-label">FastAPI backend</div><div class="arch-node-sub">/sessions · /discovery · /gaps · /recommendations · /advanced · /executive</div></div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-branch">
+        <div class="arch-node"><div class="arch-node-label">Discovery Engine</div><div class="arch-node-sub">AI — adaptive questioning</div></div>
+        <div class="arch-node"><div class="arch-node-label">Gap Analysis Engine</div><div class="arch-node-sub">Deterministic Python</div></div>
+        <div class="arch-node"><div class="arch-node-label">Recommendation Engine</div><div class="arch-node-sub">AI + pgvector RAG</div></div>
+      </div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-node"><div class="arch-node-label">PostgreSQL + pgvector (RDS)</div><div class="arch-node-sub">sessions · messages · gap results · recommendations · advanced analysis</div></div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-node accent"><div class="arch-node-label">LLM fallback chain</div><div class="arch-node-sub">Bedrock (Claude) → Groq → Gemini → OpenRouter</div></div>
+    </div>
+
+    <div class="en-body">
+      <p>The shape that matters most here is the split between the discovery/recommendation/executive engines (which call an LLM) and the gap analysis engine (which doesn't call an LLM at all — it's plain Python pattern-matching over extracted entities). That split is the subject of the next section, because it was the single decision that shaped everything downstream.</p>
+    </div>
+  </section>
+
+  <!-- SECTION 4: ARCHITECTURE DECISIONS -->
+  <section class="en-section">
+    <div class="en-section-label">04 — Architecture Decisions</div>
+    <h2 class="en-section-title">What was chosen, and why</h2>
+
+    <div class="decision-card">
+      <div class="decision-title">Why gap scoring is deterministic, not AI-generated</div>
+      <div class="decision-row"><div class="decision-label">Decision</div><div class="decision-value">Gap severity, framework mapping (CIS/NIST/SOC2/ISO27001), and maturity scores are computed by plain Python functions reading extracted entities — never by asking an LLM to "score this gap."</div></div>
+      <div class="decision-row"><div class="decision-label">Why</div><div class="decision-value">Compliance framework references are exact, fixed mappings. An auditor asking "why is this CIS 6.3, not 6.4?" needs a deterministic, repeatable answer — not a probabilistic one that could shift between two runs of the same conversation.</div></div>
+      <div class="decision-row"><div class="decision-label">Alternatives considered</div><div class="decision-value">Asking Claude to read the transcript and output gap severity directly. Rejected early — the same transcript could produce different severity labels across runs, which is unacceptable for anything resembling a compliance artefact.</div></div>
+      <div class="decision-row"><div class="decision-label">Trade-off</div><div class="decision-value tradeoff">Keyword-based detection is brittle to phrasing. This surfaced directly during build: the first version checked for literal substrings like <code>"no scim"</code> against a list that actually contained <code>"no scim automation"</code> — a list-membership check, not a substring check — so the detector silently never fired despite the right words being present. Fixed by rewriting the matcher to do genuine substring search across the full transcript text, and broadening the keyword set to match how people actually talk ("it took us seventeen days to find and kill their access") rather than only security-jargon phrasing.</div></div>
+    </div>
+
+    <div class="decision-card">
+      <div class="decision-title">Why the discovery engine is AI, not a fixed questionnaire</div>
+      <div class="decision-row"><div class="decision-label">Decision</div><div class="decision-value">Claude (via Bedrock, with fallback) generates each discovery question based on the full conversation so far, rather than working through a static script.</div></div>
+      <div class="decision-row"><div class="decision-label">Why</div><div class="decision-value">A fixed questionnaire can't follow a thread. If a customer says "we have three people on the IAM team," the highest-value next question is about what's not getting done because of that constraint — a static script has no way to know that question exists until it's already three questions further down a generic list.</div></div>
+      <div class="decision-row"><div class="decision-label">Alternatives considered</div><div class="decision-value">A decision-tree questionnaire with branching logic. Rejected — branching trees scale combinatorially and still can't react to information that wasn't anticipated when the tree was authored.</div></div>
+      <div class="decision-row"><div class="decision-label">Trade-off</div><div class="decision-value tradeoff">Early versions of the system prompt produced a real, observable failure mode: the model would acknowledge an answer generically in one sentence, then pivot to an unrelated topic next on an implicit internal checklist — wide coverage, no depth on any single thread. This was traced directly to gap analysis returning zero gaps on otherwise rich-sounding transcripts, because no topic was ever explored deeply enough for entity extraction to find concrete signal. The fix was an explicit "follow the thread" instruction in the prompt: the model must justify why its next question follows from what was just said, not from what's next on a mental list.</div></div>
+    </div>
+
+    <div class="decision-card">
+      <div class="decision-title">Why vendor recommendations use RAG over pgvector, not the LLM's own knowledge</div>
+      <div class="decision-row"><div class="decision-label">Decision</div><div class="decision-value">Vendor capability facts (what Okta's SCIM coverage actually includes, what Wiz's CSPM scope is) live in a <code>vendor_capabilities</code> table with embeddings, retrieved by similarity search before the LLM ever reasons about which vendor fits.</div></div>
+      <div class="decision-row"><div class="decision-label">Why</div><div class="decision-value">An LLM's training-data knowledge of vendor capabilities goes stale and is not verifiable. A recommendation engine that can silently hallucinate a feature a vendor doesn't have is worse than no recommendation engine — it actively damages trust the moment a customer or vendor checks the claim.</div></div>
+      <div class="decision-row"><div class="decision-label">Alternatives considered</div><div class="decision-value">Letting Claude reason from its own training knowledge about vendor products. Rejected for the hallucination risk above. A static lookup table without embeddings was also considered, but loses the ability to match a loosely-described gap ("nobody owns identity full time") to the right capability card without exact keyword overlap.</div></div>
+      <div class="decision-row"><div class="decision-label">Trade-off</div><div class="decision-value tradeoff">The vendor card library is finite and manually curated — it covers eight vendors deeply rather than every vendor shallowly. Recommendations are only as good as the cards that exist; a gap with no matching card produces a thinner recommendation, by design, rather than a fabricated one.</div></div>
+    </div>
+
+    <div class="decision-card">
+      <div class="decision-title">Why a four-provider LLM fallback chain (Bedrock → Groq → Gemini → OpenRouter)</div>
+      <div class="decision-row"><div class="decision-label">Decision</div><div class="decision-value">Every LLM call attempts Bedrock first, falls through to Groq, then Gemini, then OpenRouter, with each failure logged before the next attempt.</div></div>
+      <div class="decision-row"><div class="decision-label">Why</div><div class="decision-value">This is a demo system with no committed SLA and no production support contract behind any single provider. Bedrock model access has account-level gating (Marketplace subscription state, regional model availability) that's outside this system's control; a single-provider dependency means any one provider's outage or quota limit takes the whole demo down mid-conversation.</div></div>
+      <div class="decision-row"><div class="decision-label">Alternatives considered</div><div class="decision-value">Bedrock-only with a manual restart if it failed. Rejected after it actually happened during development — a Bedrock payment-instrument issue blocked all model access for over twelve hours with no immediate resolution path, which would be unacceptable mid-recording or mid-interview.</div></div>
+      <div class="decision-row"><div class="decision-label">Trade-off</div><div class="decision-value tradeoff">Different providers occasionally return response shapes that don't match what the calling code expects — the OpenRouter client originally assumed every response contained a <code>choices</code> key and threw an unhelpful <code>KeyError</code> when a rate-limited response didn't. Fixed by checking the response shape explicitly and surfacing the provider's actual error text, which materially shortened debugging time the next time it happened.</div></div>
+    </div>
+
+    <div class="decision-card">
+      <div class="decision-title">Why session state lives in RDS with an in-memory cache, not RDS-only or memory-only</div>
+      <div class="decision-row"><div class="decision-label">Decision</div><div class="decision-value">Every engine result (discovery transcript, gap analysis, recommendations, objections, architecture options, stakeholder briefs, deal risk, executive summary) is written to PostgreSQL immediately, with an in-process dictionary as a read-through cache.</div></div>
+      <div class="decision-row"><div class="decision-label">Why</div><div class="decision-value">A demo session that loses its entire transcript and analysis the moment the backend process restarts is not credible to show a hiring manager. Persistence has to survive deploys, restarts, and crashes without the user noticing.</div></div>
+      <div class="decision-row"><div class="decision-label">Alternatives considered</div><div class="decision-value">In-memory only (the original implementation) — fast, but a single restart loses live demo data, which happened during actual development and cost real debugging time tracing why "Run analysis" suddenly returned nothing.</div></div>
+      <div class="decision-row"><div class="decision-label">Trade-off</div><div class="decision-value tradeoff">This surfaced a genuine class of bug: the in-memory path and the RDS-reload path returned subtly different shapes for the same logical object. <code>top_3_priorities</code> is meant to be a list of gap ID strings; the in-memory object always had it computed correctly, but the RDS-reload function originally sliced the first three full gap objects instead of extracting their IDs — invisible until a restart actually forced that code path to run for the first time. The same shape mismatch recurred independently in the recommendations loader and the generic advanced-analysis loader, each only surfacing the moment a restart exercised that specific path. The fix in each case was the same principle: make the RDS-reload path reconstruct the exact same typed object the in-memory path produces, not just return compatible-looking data.</div></div>
+    </div>
+  </section>
+
+  <!-- SECTION 5: OPERATIONAL FLOW -->
+  <section class="en-section">
+    <div class="en-section-label">05 — Operational Flow</div>
+    <h2 class="en-section-title">One request, start to finish</h2>
+    <div class="en-body">
+      <p>Walking through what happens when a customer answers a discovery question, end to end.</p>
+    </div>
+
+    <div class="flow-list">
+      <div class="flow-step">
+        <div class="flow-step-title">Customer sends an answer</div>
+        <div class="flow-step-desc">The browser posts the message to the discovery endpoint along with the session ID. The backend immediately writes it to the persistent transcript before generating any response, so the answer is never lost even if generation fails downstream.</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-title">Full transcript loads</div>
+        <div class="flow-step-desc">Rather than sending only the latest message, the engine reloads the complete conversation history for that session — from the in-memory cache if the process hasn't restarted, from PostgreSQL if it has. The model needs the full thread to follow it correctly.</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-title">The LLM generates the next question</div>
+        <div class="flow-step-desc">The system prompt, the full transcript, and the "follow the thread" instructions are sent to Bedrock first. The response streams back token by token over server-sent events, so the browser shows the question appearing live rather than waiting for the full response.</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-title">The new question is persisted</div>
+        <div class="flow-step-desc">Once streaming completes, the full question text is written to the transcript table, and the engine checks the response for a specific completion phrase to decide whether discovery is finished or should continue.</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-title">Gap analysis runs when triggered</div>
+        <div class="flow-step-desc">When the user (or the completion signal) moves to gap analysis, the full transcript is passed to an entity-extraction call (AI), and the extracted entities are then passed to the deterministic gap-detection functions — no LLM involvement in scoring itself.</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-title">Downstream engines read, not regenerate</div>
+        <div class="flow-step-desc">Recommendations, objection handling, architecture options, stakeholder briefs, deal risk, and the executive summary all read the already-computed gap analysis and recommendations rather than re-deriving them — keeping every later artefact consistent with the same underlying findings.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 6: SECURITY CONSIDERATIONS -->
+  <section class="en-section">
+    <div class="en-section-label">06 — Security Considerations</div>
+    <h2 class="en-section-title">What's actually implemented</h2>
+    <div class="check-grid">
+      <div>
+        <div class="check-item-title"><span class="ic on"></span>Prompt grounding</div>
+        <div class="check-item-desc">Every chat and recommendation response is explicitly instructed to cite only facts present in the transcript or retrieved vendor cards — never to invent incidents, attack histories, or compliance frameworks the customer never mentioned. This was tightened directly after observing the model fabricate a "recent password spray attack" that was never stated.</div>
+      </div>
+      <div>
+        <div class="check-item-title"><span class="ic on"></span>Hallucination mitigation</div>
+        <div class="check-item-desc">Vendor facts come from a RAG-retrieved table, not model memory. Gap severity and framework mappings are deterministic code, not generated text — removing the two highest-risk surfaces for confident-but-wrong output.</div>
+      </div>
+      <div>
+        <div class="check-item-title"><span class="ic on"></span>Auditability</div>
+        <div class="check-item-desc">Every gap carries an explicit framework reference (CIS/NIST/SOC2/ISO27001 control ID). The deterministic scoring means the same transcript produces the same gap list on every re-run — a property an auditor can rely on.</div>
+      </div>
+      <div>
+        <div class="check-item-title"><span class="ic partial">​</span>Secrets handling</div>
+        <div class="check-item-desc">API keys and database credentials are read from environment variables on the EC2 host, not committed to the repository. There is no secrets manager (e.g. AWS Secrets Manager) in front of them — acceptable for a portfolio demo, a real gap for production.</div>
+      </div>
+      <div>
+        <div class="check-item-title"><span class="ic partial">​</span>Authentication</div>
+        <div class="check-item-desc">The discovery system itself has no end-user authentication layer — sessions are addressable by UUID with no ownership check. This is deliberate scope: the demo is meant to be explored freely, not gated, but it is a real limitation if this were ever exposed as a multi-tenant product.</div>
+      </div>
+      <div>
+        <div class="check-item-title"><span class="ic partial">​</span>Least privilege</div>
+        <div class="check-item-desc">The EC2 instance role is scoped to the specific Bedrock model ARNs it needs to invoke, not a broad Bedrock policy — but the database credentials used by the application have full read/write across all tables, not per-table scoping.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 7: SCALABILITY CONSIDERATIONS -->
+  <section class="en-section">
+    <div class="en-section-label">07 — Scalability Considerations</div>
+    <h2 class="en-section-title">Where this would need to change</h2>
+    <div class="en-body">
+      <p>The current architecture comfortably handles a single user running one demo session at a time — which is its actual purpose. A few concrete changes would be needed to take it further, and the reasoning for each is specific rather than generic.</p>
+      <p><strong>Connection pooling.</strong> Each database call currently opens and closes its own connection rather than drawing from a pool. At low concurrency this is invisible; under genuine multi-user load it would become the first bottleneck, well before the LLM calls themselves.</p>
+      <p><strong>Vendor card growth.</strong> The RAG layer currently covers eight vendors with hand-curated capability cards. Scaling that to fifty or a hundred vendors is mechanically straightforward — more rows, more embeddings — but the curation work to keep each card accurate as vendor products change is a real, ongoing cost that doesn't scale automatically with the data.</p>
+      <p><strong>Caching the embedding step.</strong> Every recommendation call currently re-embeds the gap context fresh. Gap phrasing is drawn from a fixed catalogue, so the embedding for a given gap ID is effectively static and could be cached rather than recomputed on every request.</p>
+      <p><strong>Multi-tenant session isolation.</strong> Sessions are addressable by UUID today with no ownership boundary. Supporting multiple simultaneous SE users without one being able to enumerate another's session IDs would require an actual authentication and authorisation layer in front of the session API — not a large change, but a necessary one before this could be anything other than a single-operator demo.</p>
+    </div>
+  </section>
+
+  <!-- SECTION 8: CURRENT LIMITATIONS -->
+  <section class="en-section">
+    <div class="en-section-label">08 — Current Limitations</div>
+    <h2 class="en-section-title">What this honestly doesn't do yet</h2>
+    <div class="limitation-card">
+      <div class="limitation-title">No real customer integration</div>
+      <div class="limitation-desc">The four scenarios are realistic but fictional — there's no connection to a real CRM, no ingestion of an actual sales call transcript. The discovery conversation is genuinely adaptive AI reasoning, but it's reasoning over a simulated customer, not a live one.</div>
+    </div>
+    <div class="limitation-card">
+      <div class="limitation-title">Vendor data is manually curated, not synced</div>
+      <div class="limitation-desc">The eight vendor capability cards reflect a point-in-time understanding of each product, entered by hand. There is no pipeline keeping them current against vendor documentation changes.</div>
+    </div>
+    <div class="limitation-card">
+      <div class="limitation-title">No authentication on the demo deployment</div>
+      <div class="limitation-desc">As noted in the security section, anyone with a session UUID can read that session's data. Acceptable for a public portfolio demo; a real gap outside that context.</div>
+    </div>
+    <div class="limitation-card">
+      <div class="limitation-title">Gap detection is keyword-based, not semantic</div>
+      <div class="limitation-desc">Even after the substring-matching fix described in Section 4, gap detection still relies on the entity-extraction step having phrased things in a way the keyword list anticipates. A customer describing a real gap in genuinely novel language could still go undetected.</div>
+    </div>
+  </section>
+
+  <!-- SECTION 9: PRODUCTION EVOLUTION -->
+  <section class="en-section">
+    <div class="en-section-label">09 — Production Evolution</div>
+    <h2 class="en-section-title">If this were going to production tomorrow</h2>
+    <div class="en-body">
+      <p><strong>Observability first.</strong> Right now, diagnosing a failure means reading raw <code>journalctl</code> output and tracing a stack trace by hand — which is exactly what happened repeatedly during development. A production version needs structured logging with request IDs that tie a failure to a specific session and engine call, plus basic dashboards on LLM provider success rate per fallback tier, since the four-provider chain currently has no visibility into which provider is actually serving traffic at any given moment.</p>
+      <p><strong>Multi-tenancy and RBAC.</strong> Today there's no concept of "which SE owns this session" — adding that means an actual users table, session ownership, and route-level authorization checks before any session data is returned, not just an honesty assumption that nobody will guess another session's UUID.</p>
+      <p><strong>Reliability beyond the LLM fallback chain.</strong> The four-provider LLM fallback is real resilience, but the database is still a single RDS instance with no read replica and no automated failover tested. A production deployment needs to ask the same "what happens when this fails" question about PostgreSQL that's already been answered for the LLM layer.</p>
+      <p><strong>CI/CD.</strong> Deployment today is a manual <code>git pull</code> and <code>systemctl restart</code> on the EC2 host — which is exactly the kind of manual step that caused real problems during development, including a service restart that briefly served stale frontend JavaScript against fixed backend code. A real pipeline would build, test, and deploy automatically, with a health check gating the cutover.</p>
+      <p><strong>Audit logging.</strong> Gap analysis is deterministic and reproducible, which is a strong foundation — but there's no record today of who ran an analysis, when, or what the system prompt looked like at that point in time. For anything resembling a compliance artefact, that provenance matters as much as the determinism itself.</p>
+    </div>
+  </section>
+
+  <!-- SECTION 10: LESSONS LEARNED -->
+  <section class="en-section">
+    <div class="en-section-label">10 — Lessons Learned</div>
+    <h2 class="en-section-title">What this actually taught</h2>
+
+    <div class="lesson-block">
+      <div class="lesson-heading">The deterministic/AI split was the right call, but enforcing it was harder than expected</div>
+      <div class="en-body"><p>Deciding that gap scoring should be deterministic code, not LLM output, was the easy part of the design. The hard part was that "deterministic" still depends on correctly extracted entities feeding into it — and entity extraction is itself an AI step. The bug where keyword detection silently failed due to a substring-matching error wasn't a failure of the deterministic-vs-AI principle; it was a reminder that even the deterministic half of the system has real bugs that look exactly like AI flakiness until you actually read the code.</p></div>
+    </div>
+
+    <div class="lesson-block">
+      <div class="lesson-heading">Prompt instructions that announce their own structure get echoed back literally</div>
+      <div class="en-body"><p>An early version of the discovery prompt used a numbered list to teach the model a response shape — "1. reflect, 2. explain why it matters, 3. ask a question." A smaller fallback model, when it served a request, occasionally treated those labels as content to narrate rather than structure to follow, producing answers that literally said "why that matters for this conversation is..." as visible output. Replacing the numbered instructions with worked examples — showing the shape rather than labelling it — fixed this completely. That's now a standing rule for every prompt in the system.</p></div>
+    </div>
+
+    <div class="lesson-block">
+      <div class="lesson-heading">Restart-dependent bugs are the most expensive kind to find</div>
+      <div class="en-body"><p>The shape-mismatch bugs between the in-memory cache and the RDS-reload path were each invisible for as long as the same process stayed running — which, during active development, was most of the time. Every one of them surfaced only after a deploy or restart forced the previously-untested reload path to actually execute. The lesson that stuck: if a code path only runs after a restart, it needs to be tested by actually restarting, not inferred to be correct because the in-memory version worked.</p></div>
+    </div>
+
+    <div class="lesson-block">
+      <div class="lesson-heading">What would be redesigned</div>
+      <div class="en-body"><p>The generic <code>_load()</code> function shared across four different analysis types (objections, architecture options, stakeholders, deal risk) was meant to reduce duplication, but it also meant a single shape bug there silently affected all four call sites at once, surfacing one at a time as each was exercised. A version with explicit per-type loaders, even at the cost of some repeated code, would have caught this category of bug in one pass instead of four separate debugging sessions across a single afternoon.</p></div>
+    </div>
+  </section>
+
+  <!-- FOOTER NAV -->
+  <div class="en-footer-nav">
+    <a href="../../../index.html#projects" class="btn btn-ghost">← Back to Project</a>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a href="https://youtu.be/-ubImHlkv9s" target="_blank" class="btn btn-primary">Live Demo</a>
+      <a href="https://github.com/IshwaryaLakshmiC/security-discovery-copilot" target="_blank" class="btn btn-secondary">GitHub</a>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <a href="../../../index.html">ishwaryaaunfiltered.live</a> · Engineering Notes · SE Discovery &amp; Solution Design Copilot
+</footer>
+
+</body>
+</html>
+

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Engineering Notes — Identity & Access Decision Studio | Ishwarya Chengalvarayan</title>
+<meta name="description" content="Architecture decisions, trade-offs, and lessons learned building a real-time identity and access policy decision engine on live Okta SSO." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../engineering-notes.css" />
+</head>
+<body>
+
+<nav>
+  <a href="../../../index.html" class="nav-name">Ishwarya <span>Chengalvarayan</span></a>
+  <ul class="nav-links">
+    <li><a href="../../../index.html#projects">Projects</a></li>
+    <li><a href="../../../index.html#about">About</a></li>
+    <li><a href="../../../index.html#contact">Contact</a></li>
+    <li><a class="nav-cta" href="https://calendly.com/ishwaryalakshmi-c/30min" target="_blank">Book 30 min →</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="en-hero">
+  <div class="en-kicker">Engineering Notes</div>
+  <h1 class="en-title">Identity & Access Decision Studio</h1>
+  <p class="en-desc">A design review of the architecture decisions behind a real-time access policy engine that evaluates live Okta identity against configurable policy rules — and shows its full reasoning, not just a verdict.</p>
+  <div class="en-meta">
+    <span>~12 min read</span>
+    <span class="dot"></span>
+    <span>Architecture &amp; design decisions</span>
+  </div>
+  <div class="en-cta-row">
+    <a href="../../../index.html#projects" class="btn btn-ghost">← Back to Project</a>
+    <a href="https://youtu.be/Z7eRE-9FBak" target="_blank" class="btn btn-primary">Live Demo</a>
+    <a href="https://github.com/IshwaryaLakshmiC/identity-access-decision-studio" target="_blank" class="btn btn-secondary">GitHub</a>
+  </div>
+</div>
+
+<div class="en-container">
+
+  <!-- SECTION 1: THE PROBLEM -->
+  <section class="en-section">
+    <div class="en-section-label">01 — The Problem</div>
+    <h2 class="en-section-title">Access decisions are usually invisible</h2>
+    <div class="en-body">
+      <p>When an employee is blocked from a resource, two things almost never happen: the user doesn't get a clear reason why, and the security team doesn't get an audit trail explaining what specifically triggered the denial. The decision happens inside a policy engine — Okta's, Cloudflare's, an internal IAM system's — and the output is usually a single bit: allowed or denied. Everything that led to that bit stays inside the platform.</p>
+      <p>This creates two distinct operational problems. The first is a support burden: when a legitimate user is blocked, the helpdesk has no way to quickly explain why without escalating to whoever owns the policy configuration, because the decision logic isn't visible to anyone outside that team. The second, more consequential problem, is rollout risk: a security team wanting to tighten a policy — requiring MFA everywhere, blocking BYOD from sensitive resources — has no reliable way to know how many real users that change will affect before they ship it. Organisations experience this because access policy is usually configured in a vendor console with no simulation layer in front of it; the first time anyone learns the blast radius of a policy change is when the support tickets start arriving.</p>
+    </div>
+  </section>
+
+  <!-- SECTION 2: CUSTOMER CONTEXT -->
+  <section class="en-section">
+    <div class="en-section-label">02 — Customer Context</div>
+    <h2 class="en-section-title">Who this is built for</h2>
+    <div class="en-body">
+      <p>The intended customer is a mid-size to large organisation in the early-to-mid stages of a Zero Trust or adaptive access rollout — typically the point where a security or platform team has an identity provider deployed (Okta, Entra ID) but is making policy decisions manually, console by console, with no way to preview impact before enforcement.</p>
+      <p>The realistic operational picture: a security architect or platform lead is under pressure from a CISO or compliance mandate to tighten access controls — require MFA universally, restrict BYOD from critical systems, add step-up authentication for after-hours admin access — but is wary of breaking access for legitimate users in the process, particularly contractors, executives travelling internationally, or service accounts with non-standard authentication patterns. The business driver is rarely abstract; it's usually a specific upcoming audit, a board-level Zero Trust mandate, or a near-miss security incident that made leadership ask "how would we even know if this policy is safe to turn on?"</p>
+    </div>
+  </section>
+
+  <!-- SECTION 3: ARCHITECTURE OVERVIEW -->
+  <section class="en-section">
+    <div class="en-section-label">03 — Architecture Overview</div>
+    <h2 class="en-section-title">How a request moves through the system</h2>
+    <div class="en-body">
+      <p>This system is deliberately simpler than a typical three-tier web app. The policy engine itself runs entirely in the browser as JavaScript — there is no backend service evaluating access decisions. The only backend dependency is a shared LLM endpoint used purely to generate a plain-English explanation of a decision after the fact, never to make the decision itself.</p>
+    </div>
+
+    <div class="arch-diagram">
+      <div class="arch-node accent"><div class="arch-node-label">Browser (single-page app)</div><div class="arch-node-sub">identity panel · policy toggles · decision trace · 4 analysis tabs</div></div>
+      <div class="arch-arrow">↓ OIDC redirect (PKCE)</div>
+      <div class="arch-node"><div class="arch-node-label">Okta (live IdP)</div><div class="arch-node-sub">authorization endpoint · ID token issuance</div></div>
+      <div class="arch-arrow">↓ decoded ID token</div>
+      <div class="arch-node"><div class="arch-node-label">Identity claims extracted</div><div class="arch-node-sub">groups · amr (MFA method) · email · session validity</div></div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-node accent"><div class="arch-node-label">Policy engine (client-side JS)</div><div class="arch-node-sub">7 rules evaluated in order against identity + device + network + time</div></div>
+      <div class="arch-arrow">↓ ALLOW / DENY / STEP-UP + full trace</div>
+      <div class="arch-node"><div class="arch-node-label">Shared backend — /api/explain</div><div class="arch-node-sub">Bedrock → Groq → Gemini → OpenRouter (same fallback chain as the other two portfolio projects)</div></div>
+    </div>
+
+    <div class="en-body">
+      <p>The decision to run policy evaluation entirely client-side, rather than as a backend service, is the most consequential architectural choice in this system — and it's the subject of the first entry in the next section.</p>
+    </div>
+  </section>
+
+  <!-- SECTION 4: ARCHITECTURE DECISIONS -->
+  <section class="en-section">
+    <div class="en-section-label">04 — Architecture Decisions</div>
+    <h2 class="en-section-title">What was chosen, and why</h2>
+
+    <div class="decision-card">
+      <div class="decision-title">Why the policy engine runs client-side, not as a backend service</div>
+      <div class="decision-row"><div class="decision-label">Decision</div><div class="decision-value">All seven policy rules are evaluated in plain JavaScript in the browser, reading the decoded Okta ID token directly — there is no server-side policy evaluation endpoint.</div></div>
+      <div class="decision-row"><div class="decision-label">Why</div><div class="decision-value">The point of this system is to make policy reasoning visible and inspectable. Keeping evaluation client-side means the exact logic that produced a decision is the same code a visitor can open dev tools and read — there's no hidden server-side step a reader has to take on faith.</div></div>
+      <div class="decision-row"><div class="decision-label">Alternatives considered</div><div class="decision-value">A FastAPI backend mirroring the pattern used in the other two portfolio projects. Rejected for this specific system because policy evaluation has no need for persistence, no need for an LLM in the decision path, and the transparency goal is genuinely better served by code a visitor can inspect directly rather than a black-box API call.</div></div>
+      <div class="decision-row"><div class="decision-label">Trade-off</div><div class="decision-value tradeoff">This means policy logic isn't shared with any other system and can't be reused server-side if this were ever to become a real product feature rather than a demo — a real constraint if the same rules needed to be enforced both client-side (for UX) and server-side (for actual security), which is the correct production pattern but was out of scope here.</div></div>
+    </div>
+
+    <div class="decision-card">
+      <div class="decision-title">Why Okta with OIDC and PKCE, not a mocked identity</div>
+      <div class="decision-row"><div class="decision-label">Decision</div><div class="decision-value">The system authenticates against a real Okta developer tenant using the standard OIDC authorization code flow with PKCE — no client secret, appropriate for a public single-page app.</div></div>
+      <div class="decision-row"><div class="decision-label">Why</div><div class="decision-value">A access-decision demo built on a hardcoded fake user proves nothing about whether the underlying claims-handling logic actually works against a real identity provider's token format. Using a live Okta tenant means the groups claim, the MFA method (read from the <code>amr</code> claim), and the session validity are all genuinely real, not simulated.</div></div>
+      <div class="decision-row"><div class="decision-label">Alternatives considered</div><div class="decision-value">A mocked identity object with hardcoded claims. Rejected — it would have been faster to build but would prove nothing about real-world OIDC integration, which is exactly the skill this project exists to demonstrate.</div></div>
+      <div class="decision-row"><div class="decision-label">Trade-off</div><div class="decision-value tradeoff">Real OIDC integration surfaced real integration problems during build that a mock never would have: the groups claim initially showed as empty despite being correctly configured in Okta's Authorization Server, traced eventually to a stale cached token issued before the claim was added — fixed by clearing local storage and re-authenticating. A second issue: switching between test users required forcing Okta to show the login screen even with an active session, which needed an explicit <code>prompt=login</code> parameter on the authorization request rather than relying on default behaviour.</div></div>
+    </div>
+
+    <div class="decision-card">
+      <div class="decision-title">Why the seven policies are evaluated in a fixed, explicit order</div>
+      <div class="decision-row"><div class="decision-label">Decision</div><div class="decision-value">MFA, network, device posture, new-device detection, after-hours admin access, and risk scoring are checked in a specific sequence, with the first failing rule determining the verdict and appearing first in the trace.</div></div>
+      <div class="decision-row"><div class="decision-label">Why</div><div class="decision-value">Showing every rule's pass/fail status, in order, is what makes the decision auditable rather than just correct. A security reviewer needs to see not just that access was denied, but specifically which rule fired and why that rule exists — which maps directly to a specific compliance control.</div></div>
+      <div class="decision-row"><div class="decision-label">Alternatives considered</div><div class="decision-value">A weighted risk-score-only model that combines all signals into a single number. Rejected as the primary mechanism — a single score is harder to explain to a non-technical stakeholder than "this was denied because the device wasn't MDM-managed and the resource is marked critical." The risk score still exists as one of the seven checks, but it isn't the only signal.</div></div>
+      <div class="decision-row"><div class="decision-label">Trade-off</div><div class="decision-value tradeoff">Fixed ordering means the trace always reads the same way regardless of which combination of signals actually mattered most for a given decision — a more sophisticated system might reorder the explanation around the most decisive factor, which this doesn't do.</div></div>
+    </div>
+
+    <div class="decision-card">
+      <div class="decision-title">Why AI explanation is a shared backend call, not a client-side API key</div>
+      <div class="decision-row"><div class="decision-label">Decision</div><div class="decision-value">The plain-English explanation of each decision is generated by calling a shared <code>/api/explain</code> endpoint hosted on the same backend as the other two portfolio projects, using the identical Bedrock → Groq → Gemini → OpenRouter fallback chain — rather than asking a visitor to paste in their own OpenRouter API key.</div></div>
+      <div class="decision-row"><div class="decision-label">Why</div><div class="decision-value">An earlier version required visitors to supply their own API key to see explanations, which meant the feature was visibly broken for anyone who didn't have one — a genuinely bad first impression for a portfolio demo. Routing through the already-built shared backend removed that friction entirely.</div></div>
+      <div class="decision-row"><div class="decision-label">Alternatives considered</div><div class="decision-value">Keeping the client-side key requirement. Rejected once it became clear it was actively undermining the demo — the explanation panel showed "add an OpenRouter key" text on screen by default, which reads as an unfinished feature regardless of whether the underlying logic was sound.</div></div>
+      <div class="decision-row"><div class="decision-label">Trade-off</div><div class="decision-value tradeoff">This couples the identity studio's AI explanation feature to the uptime of a separate project's backend. If the governance copilot's EC2 instance is down, this feature degrades with it — an accepted trade-off for a portfolio context, not one that would be acceptable in a real product.</div></div>
+    </div>
+  </section>
+
+  <!-- SECTION 5: OPERATIONAL FLOW -->
+  <section class="en-section">
+    <div class="en-section-label">05 — Operational Flow</div>
+    <h2 class="en-section-title">One request, start to finish</h2>
+    <div class="en-body">
+      <p>Walking through what happens when a signed-in user evaluates an access request against a critical resource.</p>
+    </div>
+
+    <div class="flow-list">
+      <div class="flow-step">
+        <div class="flow-step-title">User signs in via Okta</div>
+        <div class="flow-step-desc">The browser redirects to Okta's authorization endpoint using PKCE. On return, the Okta Auth JS SDK exchanges the authorization code for tokens and stores them client-side.</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-title">ID token is decoded</div>
+        <div class="flow-step-desc">The identity panel reads the decoded token directly — name, email, groups claim, and the <code>amr</code> (Authentication Methods Reference) claim, which determines whether the displayed MFA method is hardware key, TOTP, SMS, or none.</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-title">User configures device, network, and resource context</div>
+        <div class="flow-step-desc">These signals are deliberately configurable rather than pulled from a real MDM agent, since real-time device posture requires infrastructure outside this demo's scope — but identity itself is never simulated.</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-title">Policy engine evaluates all seven rules</div>
+        <div class="flow-step-desc">Running entirely in the browser, each rule checks its specific condition against the combined identity, device, and network context, in the fixed order described in Section 4, building a trace array as it goes.</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-title">Verdict and trace render immediately</div>
+        <div class="flow-step-desc">ALLOW, DENY, or STEP-UP appears with the full rule-by-rule trace, MITRE ATT&CK technique tags on denial, and specific remediation guidance — all computed synchronously, with no network round-trip required for the verdict itself.</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-title">AI explanation loads asynchronously</div>
+        <div class="flow-step-desc">A separate, non-blocking call to the shared backend's <code>/api/explain</code> endpoint generates a plain-English summary of the decision, appearing after the verdict rather than delaying it.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 6: SECURITY CONSIDERATIONS -->
+  <section class="en-section">
+    <div class="en-section-label">06 — Security Considerations</div>
+    <h2 class="en-section-title">What's actually implemented</h2>
+    <div class="check-grid">
+      <div>
+        <div class="check-item-title"><span class="ic on"></span>Real authentication</div>
+        <div class="check-item-desc">Sign-in is genuine OIDC against a live Okta tenant — not a simulated login form. The auth method badge is locked to "SSO via Okta ✓" specifically because it's verified, not asserted by the UI.</div>
+      </div>
+      <div>
+        <div class="check-item-title"><span class="ic on"></span>PKCE, no client secret</div>
+        <div class="check-item-desc">The OIDC flow uses PKCE rather than a client secret, which is the correct pattern for a public single-page app where a secret could never be kept confidential in the browser.</div>
+      </div>
+      <div>
+        <div class="check-item-title"><span class="ic on"></span>Auditability</div>
+        <div class="check-item-desc">Every decision shows its full rule-by-rule trace, not just a verdict — the explicit design goal of the entire system, covered in Section 1.</div>
+      </div>
+      <div>
+        <div class="check-item-title"><span class="ic partial">​</span>Trust boundary on device/network signals</div>
+        <div class="check-item-desc">Identity is genuinely verified through Okta; device posture and network location are user-configurable inputs, not independently verified. This is an explicit, disclosed scope boundary, not a hidden gap.</div>
+      </div>
+      <div>
+        <div class="check-item-title"><span class="ic partial">​</span>No server-side policy enforcement</div>
+        <div class="check-item-desc">Because evaluation is entirely client-side, nothing here actually gates access to a real resource. A user could, in principle, alter the JavaScript and force a different verdict — acceptable for a demo whose purpose is showing the reasoning, not actually protecting anything.</div>
+      </div>
+      <div>
+        <div class="check-item-title"><span class="ic on"></span>Token handling</div>
+        <div class="check-item-desc">Tokens are cleared from storage on sign-out and on explicit user-switch, specifically using <code>prompt=login</code> to force Okta to re-authenticate rather than silently reusing a cached session — necessary for demoing multiple personas credibly in one sitting.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 7: SCALABILITY CONSIDERATIONS -->
+  <section class="en-section">
+    <div class="en-section-label">07 — Scalability Considerations</div>
+    <h2 class="en-section-title">Where this would need to change</h2>
+    <div class="en-body">
+      <p>This is a single-user, single-session demo by design, so "scale" here means something narrower than typical backend throughput — it means what would need to change for the underlying decision model to support a real organisation.</p>
+      <p><strong>Server-side enforcement.</strong> The most important evolution would be moving the same policy logic to a backend service that actually gates access to real resources, with the client-side version becoming a preview/simulation layer in front of it rather than the only implementation. This is the single biggest gap between "demo" and "product."</p>
+      <p><strong>Additional identity providers.</strong> The claims-extraction logic is currently written specifically against Okta's token shape (the <code>amr</code> claim format, the groups claim configuration). Supporting Entra ID or another IdP would mean abstracting that extraction behind a common interface rather than assuming one provider's token format.</p>
+      <p><strong>Real device posture signals.</strong> Moving from user-configurable device context to genuine MDM integration (Jamf, Intune) would require a backend component polling those APIs and feeding real-time posture into the policy engine — a meaningfully larger scope than anything in the current implementation.</p>
+      <p><strong>Multi-tenant policy configuration.</strong> The seven policies are currently hardcoded. A real multi-customer version would need policies to be configurable per organisation, stored, and versioned — closer in shape to how the discovery copilot's gap catalogue is structured than to anything in this project today.</p>
+    </div>
+  </section>
+
+  <!-- SECTION 8: CURRENT LIMITATIONS -->
+  <section class="en-section">
+    <div class="en-section-label">08 — Current Limitations</div>
+    <h2 class="en-section-title">What this honestly doesn't do yet</h2>
+    <div class="limitation-card">
+      <div class="limitation-title">No server-side enforcement</div>
+      <div class="limitation-desc">As stated directly in Section 6: this shows what a decision would be, it doesn't actually gate access to anything. That's an explicit, deliberate scope boundary for a demo, not an oversight.</div>
+    </div>
+    <div class="limitation-card">
+      <div class="limitation-title">Device and network signals are simulated</div>
+      <div class="limitation-desc">Only identity is real. Device management status, patch level, and network location are selected by the user from a dropdown, not pulled from any actual endpoint security or network telemetry source.</div>
+    </div>
+    <div class="limitation-card">
+      <div class="limitation-title">CISO dashboard data is seeded, not live</div>
+      <div class="limitation-desc">The executive view showing access volume trends and top deny reasons over a 30-day window is illustrative seeded data, not a real aggregation of actual access decisions made through this system.</div>
+    </div>
+    <div class="limitation-card">
+      <div class="limitation-title">Single identity provider</div>
+      <div class="limitation-desc">Only Okta is supported today. The claims-handling code makes assumptions specific to Okta's token format that would need generalising to support Entra ID or another provider.</div>
+    </div>
+  </section>
+
+  <!-- SECTION 9: PRODUCTION EVOLUTION -->
+  <section class="en-section">
+    <div class="en-section-label">09 — Production Evolution</div>
+    <h2 class="en-section-title">If this were going to production tomorrow</h2>
+    <div class="en-body">
+      <p><strong>Server-side policy enforcement first.</strong> Before anything else, the same rule logic needs a backend implementation that's actually in the request path for real resources — the client-side version becomes a what-if simulator sitting in front of it, not the system of record for decisions.</p>
+      <p><strong>Observability.</strong> There is currently no logging of decisions anywhere outside the browser session that produced them. A production version needs every decision persisted with its full trace, queryable by user, resource, and time range — which is exactly the gap the seeded CISO dashboard is currently standing in for with illustrative data.</p>
+      <p><strong>Multi-tenancy and RBAC.</strong> Policy configuration needs to move from hardcoded JavaScript to a per-organisation, role-gated configuration store, with audit logging on every policy change — not just every access decision.</p>
+      <p><strong>Reliability of the explanation feature.</strong> The AI explanation depends on a separate project's backend being up. In production, this dependency would need its own dedicated, independently-scaled service rather than piggybacking on infrastructure built for a different system.</p>
+      <p><strong>Real device posture integration.</strong> Moving from user-selected device context to a genuine MDM integration is probably the single highest-value next step for credibility — it's the gap most likely to be noticed by a technical reviewer.</p>
+    </div>
+  </section>
+
+  <!-- SECTION 10: LESSONS LEARNED -->
+  <section class="en-section">
+    <div class="en-section-label">10 — Lessons Learned</div>
+    <h2 class="en-section-title">What this actually taught</h2>
+
+    <div class="lesson-block">
+      <div class="lesson-heading">Real OIDC integration surfaces problems a mock never would</div>
+      <div class="en-body"><p>The groups claim appearing empty despite correct Authorization Server configuration, traced eventually to a stale cached token from before the claim existed, is exactly the kind of integration problem that only shows up against a real identity provider. Building against a mock would have produced a demo that looked correct without ever proving the claims-handling logic actually worked.</p></div>
+    </div>
+
+    <div class="lesson-block">
+      <div class="lesson-heading">A feature that's visibly unconfigured is worse than no feature</div>
+      <div class="en-body"><p>The original AI explanation panel required visitors to paste in their own API key, and showed exactly that instruction by default. It would have been better, in hindsight, to build the shared-backend version from the start rather than shipping a feature whose default state looks broken. The fix — routing through infrastructure already built for the other two portfolio projects — took less time than the original client-key implementation had, which says something about over-engineering the first version.</p></div>
+    </div>
+
+    <div class="lesson-block">
+      <div class="lesson-heading">Switching identity in a demo is a real UX problem, not an edge case</div>
+      <div class="en-body"><p>Demoing multiple personas (admin, contractor, engineer) against the same policies requires actually forcing Okta to re-prompt for credentials, which doesn't happen by default once a session exists. This needed an explicit <code>prompt=login</code> parameter — a small technical detail, but one that directly determined whether the demo could show contrast between user types in a single recording session.</p></div>
+    </div>
+
+    <div class="lesson-block">
+      <div class="lesson-heading">What would be redesigned</div>
+      <div class="en-body"><p>Given the chance to rebuild, policy evaluation would be written once as a shared module and run in two places — client-side for the instant preview, and server-side as the actual enforcement point — rather than living only in the browser. The current single-location design was the right choice for a transparency-focused demo, but it's a design that doesn't extend cleanly toward becoming a real product without a meaningful rewrite, which is worth knowing going in rather than discovering later.</p></div>
+    </div>
+  </section>
+
+  <!-- FOOTER NAV -->
+  <div class="en-footer-nav">
+    <a href="../../../index.html#projects" class="btn btn-ghost">← Back to Project</a>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a href="https://youtu.be/Z7eRE-9FBak" target="_blank" class="btn btn-primary">Live Demo</a>
+      <a href="https://github.com/IshwaryaLakshmiC/identity-access-decision-studio" target="_blank" class="btn btn-secondary">GitHub</a>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <a href="../../../index.html">ishwaryaaunfiltered.live</a> · Engineering Notes · Identity &amp; Access Decision Studio
+</footer>
+
+</body>
+</html>
