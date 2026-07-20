@@ -263,7 +263,7 @@
           <span class="project-tag tag-identity">Identity · Zero Trust</span>
           <h3 class="project-title">Identity &amp; Access Decision Studio</h3>
           <p class="project-problem">When a user gets blocked, neither the user nor the helpdesk knows why. Security teams can't show stakeholders the business impact of enabling a new policy before they turn it on — so Zero Trust rollouts stall.</p>
-          <p class="project-what">A working policy engine with real Okta SSO integration. Signs in with your actual Okta identity and evaluates access decisions against 7 configurable policies in real time. Shows policy blast radius before rollout, maps every decision to CIS/NIST/SOC2 controls, provides post-deny remediation steps, and includes a CISO dashboard with risk reduction trends.</p>
+          <p class="project-what">A working policy engine with real Okta SSO integration. Signs in with your actual Okta identity and evaluates access decisions against 7 configurable policies in real time. Shows policy blast radius before rollout, maps every decision to CIS/NIST/SOC2 controls, provides post-deny remediation steps, and includes a CISO dashboard with risk reduction trends. Runs entirely client-side by design — built to make policy reasoning inspectable, not to enforce access itself.</p>
           <div class="project-targets">
             <span class="target-tag">Cloudflare</span><span class="target-tag">Okta</span><span class="target-tag">Palo Alto</span>
             <span class="target-tag">Zscaler</span><span class="target-tag">CrowdStrike</span>
@@ -286,7 +286,7 @@
           <span class="project-tag tag-ai">AI Platform · Cloud Infrastructure</span>
           <h3 class="project-title">AWS Governance Copilot</h3>
           <p class="project-problem">Engineering and platform teams spend hours manually correlating infrastructure findings, configuration drift, and cost anomalies across AWS accounts. The most common question — "why did our bill spike $340 last week?" — takes days to answer without the right tooling.</p>
-          <p class="project-what">A natural language interface over live AWS infrastructure — no dashboards, no queries, no SIEM config. Ask "why did our bill spike last week?" or "which services have configuration drift?" and get answers grounded in real data. Collectors poll 9 AWS services continuously. Deployed on Bedrock with Claude Sonnet and pgvector for semantic search. Built and shipped on Terraform-managed infrastructure.</p>
+          <p class="project-what">A natural language interface over live AWS infrastructure — no dashboards, no queries, no SIEM config. Ask "why did our bill spike last week?" or "which services have configuration drift?" and get answers grounded in real data. Collectors poll 9 AWS services on a schedule rather than querying AWS live, trading real-time freshness for a chat path that's fast and isolated from direct AWS API access. Deployed on Bedrock with Claude Sonnet and pgvector for semantic search. Built and shipped on Terraform-managed infrastructure.</p>
           <div class="project-targets">
             <span class="target-tag">Datadog</span><span class="target-tag">HashiCorp</span><span class="target-tag">Snowflake</span>
             <span class="target-tag">Wiz</span><span class="target-tag">MongoDB</span><span class="target-tag">Elastic</span>
@@ -323,7 +323,7 @@
         <div class="case-company">Cisco Systems · 2024</div>
         <h3 class="case-title">ZTNA Platform Evaluation — Cloudflare vs Netskope vs Palo Alto</h3>
         <p class="case-problem">Organisation needed to replace legacy VPN for 5,000+ users with a Zero Trust architecture. Three vendors shortlisted. Security team had no structured evaluation framework and was being led by vendor sales cycles rather than requirements.</p>
-        <p class="case-outcome">Authored evaluation RFC covering 6 domains (identity integration, security controls, performance, ops complexity, scalability, commercial). Presented structured comparison to senior engineering leadership. Netskope selected based on SCIM depth and inline DLP capability. Deployment phased over 90 days with parallel-run period.</p>
+        <p class="case-outcome">Authored evaluation RFC covering 6 domains (identity integration, security controls, performance, ops complexity, scalability, commercial). Presented structured comparison to senior engineering leadership. Netskope selected based on SCIM depth and inline DLP capability. Deployment phased over 90 days with a parallel-run period — accepting the cost of running both systems at once to keep a rollback path open for 5,000+ users.</p>
         <div class="case-skills">
           <span class="case-skill">ZTNA</span><span class="case-skill">Vendor Evaluation</span><span class="case-skill">RFC Authorship</span>
           <span class="case-skill">SCIM</span><span class="case-skill">Stakeholder Presentation</span>
@@ -334,7 +334,7 @@
         <div class="case-company">Mercor AI Lab · 2026</div>
         <h3 class="case-title">Greenfield AI Platform Architecture — From First Principles</h3>
         <p class="case-problem">US/Australia AI lab with no existing infrastructure standards, no guardrails, and LLM inference workloads needing to deploy across two continents with full audit trail.</p>
-        <p class="case-outcome">Sole infrastructure architect. Designed the platform RFC from scratch: tiered Terraform blessed modules (S3, IAM, ECS, Lambda, EventBridge), Spacelift-driven ClickOps-free deployment pipeline, async design reviews with engineers across time zones. All LLM projects launched policy-compliant with full deployment audit trail.</p>
+        <p class="case-outcome">Sole infrastructure architect. Designed the platform RFC from scratch: tiered Terraform blessed modules (S3, IAM, ECS, Lambda, EventBridge), Spacelift-driven ClickOps-free deployment pipeline, async design reviews with engineers across time zones — trading team-level infrastructure flexibility for guaranteed policy compliance across a distributed team with no existing standards to build on. All LLM projects launched policy-compliant with full deployment audit trail.</p>
         <div class="case-skills">
           <span class="case-skill">Terraform</span><span class="case-skill">AWS</span><span class="case-skill">RFC Authorship</span>
           <span class="case-skill">Platform Design</span><span class="case-skill">Spacelift</span>
@@ -356,7 +356,7 @@
         <div class="case-company">Gale Partners · 2022–2023</div>
         <h3 class="case-title">Multi-Tenant Terraform Restructuring — Eliminating Blast Radius Risk</h3>
         <p class="case-problem">20 customer environments co-located in a single Terraform repository. A misconfiguration in one customer's code could silently affect unrelated clients. No lifecycle isolation, no per-customer state separation.</p>
-        <p class="case-outcome">Conducted full technical discovery. Authored the RFC. Led implementation into fully isolated per-customer state with independent lifecycle management and zero cross-client exposure. Delivered across 3 AWS regions with ArgoCD-based GitOps pipeline.</p>
+        <p class="case-outcome">Conducted full technical discovery. Authored the RFC. Led implementation into fully isolated per-customer state with independent lifecycle management and zero cross-client exposure — accepting that a shared module update now has to be rolled out to 20 separate states individually rather than once centrally. Delivered across 3 AWS regions with ArgoCD-based GitOps pipeline.</p>
         <div class="case-skills">
           <span class="case-skill">Terraform</span><span class="case-skill">RFC Authorship</span><span class="case-skill">AWS</span>
           <span class="case-skill">ArgoCD</span><span class="case-skill">Architecture Design</span>
